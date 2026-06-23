@@ -7,7 +7,10 @@
 const path = require("path");
 const fs = require("fs");
 
-const pdfjsDistPath = path.dirname(require.resolve("pdfjs-dist/package.json"));
+const reactPdfPath = require.resolve("react-pdf");
+const pdfjsDistPath = path.dirname(
+  require.resolve("pdfjs-dist/package.json", { paths: [reactPdfPath] }),
+);
 
 const pdfWorkerPath = path.join(pdfjsDistPath, "build", "pdf.worker.min.js");
 

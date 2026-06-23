@@ -20,16 +20,23 @@ const hasCredentials = accessKeyId && secretAccessKey;
 const PrivateBucket = env.UPLOAD_BUCKET_PRIVATE;
 const PublicBucket = env.UPLOAD_BUCKET_PUBLIC;
 
-const S3 = new S3Client({
+const s3Config = {
   region,
-  endpoint,
+  forcePathStyle: true,
   credentials: hasCredentials
-    ? {
-        secretAccessKey,
-        accessKeyId,
-      }
+    ? { secretAccessKey, accessKeyId }
     : undefined,
-});
+};
+
+// Used for server-side operations (PUT, DELETE) — uses Docker-internal endpoint.
+const S3 = new S3Client({ ...s3Config, endpoint });
+
+// Used to sign GET URLs for browser access — signs with the public endpoint so
+// the Host in the signature matches what the browser actually sends.
+const publicEndpoint = env.NEXT_PUBLIC_UPLOAD_DOMAIN;
+const S3Public = publicEndpoint
+  ? new S3Client({ ...s3Config, endpoint: publicEndpoint })
+  : S3;
 
 export type TypeKeyPrefixes =
   | "new-safes"
@@ -94,7 +101,7 @@ export const getPresignedGetUrl = async (key: string) => {
     ResponseContentDisposition: "inline",
   });
 
-  const url = await getSignedUrl(S3, getObjectCommand, {
+  const url = await getSignedUrl(S3Public, getObjectCommand, {
     expiresIn: TEN_MINUTES_IN_SECONDS,
   });
 

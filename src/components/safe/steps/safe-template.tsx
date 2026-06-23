@@ -43,8 +43,7 @@ import { TAG } from "@/lib/tags";
 import { api } from "@/trpc/react";
 import { ZodTemplateFieldRecipientSchema } from "@/trpc/routers/template-router/schema";
 import { RiDeleteBinLine } from "@remixicon/react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { TFormSchema as TGeneralDetailsFormSchema } from "./general-details";
 import type { TFormSchema as TInvestorDetailsFormSchema } from "./investor-details";
@@ -79,8 +78,9 @@ type TFormSchema = z.infer<typeof formSchema>;
 
 export function SafeTemplate() {
   const router = useRouter();
+  const params = useParams<{ publicId: string }>();
+  const companyPublicId = params.publicId;
   const formValues = useFormValueState<TFormValueState>();
-  const { data: session } = useSession();
   const form = useForm<TFormSchema>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -96,9 +96,13 @@ export function SafeTemplate() {
     onSuccess: (payload) => {
       if (payload.success) {
         toast.success("🎉 SAFEs created successfully.");
-        router.push(
-          `/${session?.user.companyPublicId}/documents/esign/${payload.template.publicId}`,
-        );
+        if (companyPublicId) {
+          router.push(
+            `/${companyPublicId}/documents/esign/${payload.template.publicId}`,
+          );
+        } else {
+          router.refresh();
+        }
       } else {
         toast.error("Failed creating SAFEs. Please try again.");
       }
@@ -108,15 +112,16 @@ export function SafeTemplate() {
 
   const handleSubmit = async (formData: TFormSchema) => {
     const { templateType, ...rest } = formData;
-    invariant(session, "session not found");
 
     if (rest.safeTemplate === "CUSTOM" && documentsList.length) {
+      invariant(companyPublicId, "company not found");
+
       const doc = documentsList?.[0];
 
       invariant(doc, "document not found");
 
       const { key, mimeType, name, size } = await uploadFile(doc, {
-        identifier: session.user.companyPublicId,
+        identifier: companyPublicId,
         keyPrefix: "new-safes",
       });
 

@@ -13,8 +13,7 @@ import { uploadFile } from "@/common/uploads";
 import { invariant } from "@/lib/error";
 import { TAG } from "@/lib/tags";
 import { api } from "@/trpc/react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { TFormSchema as TGeneralDetailsFormSchema } from "./general-details";
 import type { TFormSchema as TInvestorDetailsFormSchema } from "./investor-details";
@@ -23,7 +22,8 @@ type TFormValueState = TGeneralDetailsFormSchema & TInvestorDetailsFormSchema;
 
 export function SafeDocuments() {
   const router = useRouter();
-  const { data: session } = useSession();
+  const params = useParams<{ publicId: string }>();
+  const companyPublicId = params.publicId;
   const values = useFormValueState<TFormValueState>();
   const [documentsList, setDocumentsList] = useState<FileWithPath[]>([]);
   const { mutateAsync: handleBucketUpload } = api.bucket.create.useMutation();
@@ -40,13 +40,13 @@ export function SafeDocuments() {
     });
 
   const handleComplete = async () => {
-    invariant(session, "session not found");
+    invariant(companyPublicId, "company not found");
 
     const uploadedDocuments: { name: string; bucketId: string }[] = [];
 
     for (const document of documentsList) {
       const { key, mimeType, name, size } = await uploadFile(document, {
-        identifier: session.user.companyPublicId,
+        identifier: companyPublicId,
         keyPrefix: "existing-safes",
       });
 

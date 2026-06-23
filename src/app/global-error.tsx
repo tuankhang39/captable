@@ -1,7 +1,6 @@
 "use client";
 
 import { PublicEnvScript } from "@/components/public-env-script";
-import { env } from "@/env";
 import NextError from "next/error";
 import { useEffect } from "react";
 
@@ -12,7 +11,9 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     const handleError = async () => {
-      if (env.NEXT_PUBLIC_SENTRY_DSN) {
+      const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+
+      if (dsn && !dsn.startsWith("YOUR_")) {
         const captureException = (await import("@sentry/nextjs"))
           .captureException;
 

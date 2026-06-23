@@ -14,9 +14,13 @@ COPY prisma ./prisma
 
 ENV HUSKY 0
 
-# Install dependencies
+# Install dependencies (skip postinstall — copy:pdfjs needs pdfjs-dist which isn't
+# resolvable as a transitive dep at this stage; prisma generate runs explicitly instead)
 COPY package.json pnpm-lock.yaml* ./
-RUN corepack enable pnpm && pnpm i --frozen-lockfile
+COPY scripts ./scripts
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate && \
+    pnpm i --frozen-lockfile --ignore-scripts && \
+    pnpm exec prisma generate
 
 ##### BUILDER
 
@@ -32,7 +36,7 @@ COPY . .
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV DOCKER_OUTPUT 1
 ENV SKIP_ENV_VALIDATION 1
-RUN corepack enable pnpm && pnpm run build
+RUN corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm copy:pdfjs && pnpm run build
 
 ##### RUNNER
 

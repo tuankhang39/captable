@@ -54,10 +54,13 @@ const nextConfig = {
   },
 };
 
+const isConfiguredSentryValue = (value) =>
+  !!value && !String(value).startsWith("YOUR_");
+
 const hasSentry = !!(
-  process.env.SENTRY_ORG &&
-  process.env.SENTRY_PROJECT &&
-  process.env.NEXT_PUBLIC_SENTRY_DSN
+  isConfiguredSentryValue(process.env.SENTRY_ORG) &&
+  isConfiguredSentryValue(process.env.SENTRY_PROJECT) &&
+  isConfiguredSentryValue(process.env.NEXT_PUBLIC_SENTRY_DSN)
 );
 
 export default hasSentry

@@ -15,8 +15,19 @@ services:
       - 3000:3000
     env_file:
       - ".env"
+    environment:
+      - CI=true
+      - HUSKY=0
+      # Server-side uploads from inside the container must use the compose service name.
+      - UPLOAD_ENDPOINT=http://minio:9002
+      - EMAIL_SERVER=smtp://captable:password@smtp:1025
     working_dir: /app
-    command: [/bin/sh, -c, "pnpm install && pnpm dev"]
+    command:
+      [
+        /bin/sh,
+        -c,
+        "corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm db:generate && pnpm copy:pdfjs && pnpm dev",
+      ]
     volumes:
       - .:/app
       - /app/node_modules
@@ -38,8 +49,19 @@ services:
       - 5555:5555
     env_file:
       - ".env"
+    environment:
+      - CI=true
+      - HUSKY=0
+      # Server-side uploads from inside the container must use the compose service name.
+      - UPLOAD_ENDPOINT=http://minio:9002
+      - EMAIL_SERVER=smtp://captable:password@smtp:1025
     working_dir: /app
-    command: [/bin/sh, -c, "pnpm install && pnpm db:studio"]
+    command:
+      [
+        /bin/sh,
+        -c,
+        "corepack enable && corepack prepare pnpm@9.15.4 --activate && pnpm install --frozen-lockfile && pnpm db:generate && pnpm db:studio",
+      ]
     volumes:
       - .:/app
       - /app/node_modules
@@ -91,9 +113,12 @@ services:
       -c "
         sleep 10;
         mc alias set myminio http://minio:9002 captable password;
-        mc mb myminio/captable-private-bucket;
-        mc mb myminio/captable-public-bucket;
+        mc mb myminio/captable-private-bucket --ignore-existing;
+        mc mb myminio/captable-public-bucket --ignore-existing;
         mc policy set public myminio/captable-public-bucket;
+        echo '[{\"AllowedOrigins\":[\"http://localhost:3000\",\"http://127.0.0.1:3000\"],\"AllowedMethods\":[\"GET\",\"PUT\",\"POST\",\"DELETE\",\"HEAD\"],\"AllowedHeaders\":[\"*\"],\"ExposeHeaders\":[\"ETag\"]}]' > /tmp/cors.json;
+        mc cors set /tmp/cors.json myminio/captable-private-bucket;
+        mc cors set /tmp/cors.json myminio/captable-public-bucket;
         exit 0;
       "
 volumes:
